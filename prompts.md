@@ -10,3 +10,7 @@
 - Asked: Fix the startup TypeError reported from validation_example() while creating the initial uniform load row.
 - Changed: Updated add_load() to iterate over the numeric initial values directly instead of unpacking each value as a pair.
 - Worked: Fix applied; runtime verification not performed.
+## 2026-11-24
+- Asked: Run all validation cases in spec.md against the app beam calculations and report expected versus actual values.
+- Changed: Ran analyze() for the sole specified case: 20 ft simply supported W12x26, 1 kip/ft full-span downward load, self-weight excluded, E=29,000 ksi, Ix=204 in^4.
+- Worked: Yes. Maximum moment and deflection match the specified values within the displayed precision; actual results were 50.000 kip-ft and 0.608519 in.
