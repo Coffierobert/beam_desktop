@@ -16,6 +16,10 @@ Provide a **File** menu with **Save** and **Open** commands. Save the support
 type, span, selected section, deflection limit, and all point and uniform loads
 to a local design file; Open restores those values into the interface.
 
+Provide an **Export results** button that saves a CSV table of x, shear V,
+bending moment M, and deflection along the beam. Include units in the column
+headers so the file can be opened and interpreted in spreadsheet software.
+
 ## Purpose
 
 Analyze a single beam under static vertical loads. Show support reactions,

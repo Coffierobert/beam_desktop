@@ -1,5 +1,6 @@
 """Beam Designer: a local Tkinter beam analysis desktop application."""
 import json
+import csv
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
@@ -174,6 +175,7 @@ class BeamDesigner(tk.Tk):
         buttons = ttk.Frame(p, style="Card.TFrame"); buttons.pack(fill="x", pady=(12, 2))
         ttk.Button(buttons, text="Validation example", command=self.validation_example).pack(fill="x", pady=2)
         ttk.Button(buttons, text="Run analysis", command=self.run).pack(fill="x", pady=2)
+        ttk.Button(buttons, text="Export results", command=self.export_results).pack(fill="x", pady=2)
         ttk.Label(p, text="Engineering aid only; verify properties and assumptions before use.", wraplength=260, style="Card.TLabel").pack(anchor="w", pady=8)
 
     def add_load(self, kind, initial=None):
@@ -211,6 +213,25 @@ class BeamDesigner(tk.Tk):
             self.status.set(f"Saved design to {path}")
         except (ValueError, OSError) as exc:
             messagebox.showerror("Could not save design", str(exc))
+
+    def export_results(self):
+        if not hasattr(self, "result"):
+            messagebox.showinfo("No results", "Run an analysis before exporting results.")
+            return
+        path = filedialog.asksaveasfilename(
+            title="Export beam results", defaultextension=".csv",
+            filetypes=(("CSV spreadsheet", "*.csv"), ("All files", "*.*")))
+        if not path:
+            return
+        try:
+            with open(path, "w", newline="", encoding="utf-8-sig") as output_file:
+                writer = csv.writer(output_file)
+                writer.writerow(("x (ft)", "V (kip)", "M (kip-ft)", "Deflection (in)"))
+                writer.writerows(zip(self.result["xs"], self.result["shear"],
+                                     self.result["moment"], self.result["deflection"]))
+            self.status.set(f"Exported results to {path}")
+        except OSError as exc:
+            messagebox.showerror("Could not export results", str(exc))
 
     def open_design(self):
         path = filedialog.askopenfilename(

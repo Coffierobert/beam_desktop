@@ -18,3 +18,7 @@
 - Asked: Add File menu Save/Open for support type, span, section, deflection limit, and loads; remove saving designs from spec out of scope.
 - Changed: Added a File menu with Ctrl+S/Ctrl+O, JSON save/open dialogs, state restoration for the requested fields, and updated spec.md to state saving/opening is in scope. The current Out of scope section did not contain a saving designs item to remove.
 - Worked: Implementation completed; not runtime-verified.
+## 2026-11-24
+- Asked: Add a button to export x, V, M, and deflection along the beam to an Excel-compatible CSV file.
+- Changed: Added an Export results button and CSV writer with unit-labeled columns, UTF-8 BOM for spreadsheet compatibility, and updated spec.md.
+- Worked: Implementation completed; not runtime-verified.
