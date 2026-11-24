@@ -22,3 +22,7 @@
 - Asked: Add a button to export x, V, M, and deflection along the beam to an Excel-compatible CSV file.
 - Changed: Added an Export results button and CSV writer with unit-labeled columns, UTF-8 BOM for spreadsheet compatibility, and updated spec.md.
 - Worked: Implementation completed; not runtime-verified.
+## 2026-11-24
+- Asked: Fix the app because the controls extend beyond the window and there is no scroll button to reach the lower controls.
+- Changed: Wrapped the input panel in a vertically scrollable Tkinter canvas with a visible scrollbar and mouse-wheel support.
+- Worked: Fix applied; not runtime-verified.
