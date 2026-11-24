@@ -15,6 +15,71 @@ STEEL = {
 LUMBER = {"2x4": (1.5, 3.5), "2x6": (1.5, 5.5), "2x8": (1.5, 7.25), "2x10": (1.5, 9.25), "2x12": (1.5, 11.25)}
 
 
+def _pdf_escape(value):
+    return str(value).encode("ascii", "replace").decode("ascii").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _pdf_text_and_plots(lines, result):
+    """Create a one-page letter-sized PDF content stream with vector diagrams."""
+    ops = ["0.16 0.14 0.23 rg", "BT", "/F1 15 Tf", "42 755 Td", f"({_pdf_escape(lines[0])}) Tj", "ET"]
+    y = 734
+    for index, text in enumerate(lines[1:]):
+        size = 9 if index < len(lines) - 3 else 8
+        ops.extend(["BT", f"/F1 {size} Tf", f"42 {y} Td", f"({_pdf_escape(text)}) Tj", "ET"])
+        y -= 14
+    chart_top = y - 8
+    charts = (("Shear V (kip)", result["shear"], result["vpeak"]),
+              ("Bending moment M (kip-ft)", result["moment"], result["mpeak"]),
+              ("Deflection (in)", result["deflection"], result["dpeak"]))
+    for chart_index, (title, values, peak) in enumerate(charts):
+        top = chart_top - chart_index * 137
+        left, right, bottom = 65, 555, top - 112
+        ops.extend(["0.42 0.34 0.71 RG", "0.6 w", f"{left} {top} m {left} {bottom} l {right} {bottom} l S"])
+        ops.extend(["BT", "/F1 10 Tf", f"{left} {top + 5} Td", f"({_pdf_escape(title)}   max |.| = {peak[0]:.3f} at x = {peak[1]:.2f} ft) Tj", "ET"])
+        baseline = bottom + 42
+        ops.extend(["0.65 0.68 0.72 RG", f"{left} {baseline} m {right} {baseline} l S", "0.20 0.48 0.45 RG", "1.1 w"])
+        max_value = max((abs(value) for value in values), default=1) or 1
+        coords = []
+        stride = max(1, len(values) // 250)
+        indices = list(range(0, len(values), stride))
+        if indices[-1] != len(values) - 1:
+            indices.append(len(values) - 1)
+        for i in indices:
+            x = left + (right - left) * i / (len(values) - 1)
+            yy = baseline - values[i] / max_value * 34
+            coords.append((x, yy))
+        if coords:
+            ops.append(f"{coords[0][0]:.2f} {coords[0][1]:.2f} m")
+            ops.extend(f"{x:.2f} {yy:.2f} l" for x, yy in coords[1:])
+            ops.append("S")
+        ops.extend(["0.25 0.25 0.25 rg", "BT", "/F1 8 Tf", f"{left} {bottom - 12} Td", "(0 ft) Tj", "ET", "BT", "/F1 8 Tf", f"{right - 35} {bottom - 12} Td", f"({result['span']:.2f} ft) Tj", "ET"])
+    return "\n".join(ops)
+
+
+def _write_simple_pdf(path, content):
+    """Write a minimal PDF using only the Python standard library."""
+    stream = content.encode("latin-1", "replace")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, 1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode("ascii") + obj + b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(offsets)}\n0000000000 65535 f \n".encode("ascii"))
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode("ascii"))
+    with open(path, "wb") as pdf_file:
+        pdf_file.write(pdf)
+
+
 def analyze(span, support, loads, sx, ix, modulus, allowable, limit):
     """Numerically integrate load response and Euler-Bernoulli curvature."""
     n = max(800, int(span * 80))
@@ -186,6 +251,7 @@ class BeamDesigner(tk.Tk):
         ttk.Button(buttons, text="Validation example", command=self.validation_example).pack(fill="x", pady=2)
         ttk.Button(buttons, text="Run analysis", command=self.run).pack(fill="x", pady=2)
         ttk.Button(buttons, text="Export results", command=self.export_results).pack(fill="x", pady=2)
+        ttk.Button(buttons, text="Calculation sheet (PDF)", command=self.export_calculation_sheet).pack(fill="x", pady=2)
         ttk.Label(p, text="Engineering aid only; verify properties and assumptions before use.", wraplength=260, style="Card.TLabel").pack(anchor="w", pady=8)
 
     def add_load(self, kind, initial=None):
@@ -242,6 +308,46 @@ class BeamDesigner(tk.Tk):
             self.status.set(f"Exported results to {path}")
         except OSError as exc:
             messagebox.showerror("Could not export results", str(exc))
+
+    def export_calculation_sheet(self):
+        if not hasattr(self, "result"):
+            messagebox.showinfo("No results", "Run an analysis before exporting a calculation sheet.")
+            return
+        path = filedialog.asksaveasfilename(
+            title="Save calculation sheet", defaultextension=".pdf",
+            filetypes=(("PDF document", "*.pdf"), ("All files", "*.*")))
+        if not path:
+            return
+        try:
+            r = self.result
+            allowable = "Not provided" if r["allowable"] is None else f"{r['allowable']:.3f} ksi"
+            bending = "Not evaluated" if r["allowable"] is None else ("PASS" if r["stress"] <= r["allowable"] else "FAIL")
+            deflection_check = "PASS" if r["dpeak"][0] <= r["limit"] else "FAIL"
+            lines = [
+                "BEAM DESIGNER | CALCULATION SHEET",
+                f"Support: {r['support']}     Span: {r['span']:.3f} ft     Section: {r['section']}",
+                f"Section properties used: Sx = {r['sx']:.3f} in^3     Ix = {r['ix']:.3f} in^4",
+                f"Material modulus E: {self.vars['E'].get()} ksi     Deflection limit: {r['limit']:.3f} in",
+                "Loads (downward positive):",
+            ]
+            for load in r["loads"]:
+                if load["kind"] == "point":
+                    lines.append(f"  Point: {load['magnitude']:.3f} kip at x = {load['position']:.3f} ft")
+                else:
+                    label = load.get("label", "Uniform")
+                    lines.append(f"  {label}: {load['magnitude']:.3f} kip/ft from {load['start']:.3f} to {load['end']:.3f} ft")
+            reactions = "; ".join(f"{name}: {value:.3f} {'kip-ft' if name == 'Fixed moment' else 'kip'}" for name, value in r["reactions"])
+            lines.extend([
+                f"Reactions: {reactions}",
+                f"Bending-stress check: {bending} | demand {r['stress']:.3f} ksi | allowable {allowable}",
+                f"Deflection check: {deflection_check} | demand {r['dpeak'][0]:.3f} in at x = {r['dpeak'][1]:.3f} ft | limit {r['limit']:.3f} in",
+                "PRELIMINARY ENGINEERING AID — verify section data, assumptions, and design values.",
+            ])
+            content = _pdf_text_and_plots(lines, r)
+            _write_simple_pdf(path, content)
+            self.status.set(f"Saved calculation sheet to {path}")
+        except OSError as exc:
+            messagebox.showerror("Could not save calculation sheet", str(exc))
 
     def open_design(self):
         path = filedialog.askopenfilename(

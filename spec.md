@@ -20,6 +20,10 @@ Provide an **Export results** button that saves a CSV table of x, shear V,
 bending moment M, and deflection along the beam. Include units in the column
 headers so the file can be opened and interpreted in spreadsheet software.
 
+Provide a **Calculation sheet** button that saves a PDF containing the inputs,
+analysis diagrams, support reactions, and check results in a hand-in-ready
+layout.
+
 ## Purpose
 
 Analyze a single beam under static vertical loads. Show support reactions,

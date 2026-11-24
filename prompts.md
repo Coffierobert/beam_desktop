@@ -26,3 +26,7 @@
 - Asked: Fix the app because the controls extend beyond the window and there is no scroll button to reach the lower controls.
 - Changed: Wrapped the input panel in a vertically scrollable Tkinter canvas with a visible scrollbar and mouse-wheel support.
 - Worked: Fix applied; not runtime-verified.
+## 2026-11-24
+- Asked: Add a Calculation sheet button that saves diagrams and checks as a PDF with inputs at the top.
+- Changed: Added a standard-library PDF exporter with inputs, loads, section properties, reactions, check outcomes, and vector shear, moment, and deflection plots; updated spec.md.
+- Worked: Implementation completed; not runtime-verified.
