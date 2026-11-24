@@ -172,7 +172,8 @@ class BeamDesigner(tk.Tk):
         area = self.point_area if kind == "point" else self.uniform_area
         row = ttk.Frame(area, style="Card.TFrame"); row.pack(fill="x", pady=2)
         items = []
-        for val, unit in (initial or ((1, 10) if kind == "point" else (1, 0, 20))):
+        values = initial or ((1, 10) if kind == "point" else (1, 0, 20))
+        for val in values:
             var = tk.StringVar(value=str(val)); ttk.Entry(row, textvariable=var, width=6).pack(side="left", padx=(0, 3)); items.append(var)
         ttk.Label(row, text="kip @ ft" if kind == "point" else "kip/ft · from to ft", style="Card.TLabel").pack(side="left")
         ttk.Button(row, text="×", width=2, command=lambda: (row.destroy(), self._remove_row(kind, items))).pack(side="right")
