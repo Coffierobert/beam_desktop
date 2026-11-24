@@ -14,3 +14,7 @@
 - Asked: Run all validation cases in spec.md against the app beam calculations and report expected versus actual values.
 - Changed: Ran analyze() for the sole specified case: 20 ft simply supported W12x26, 1 kip/ft full-span downward load, self-weight excluded, E=29,000 ksi, Ix=204 in^4.
 - Worked: Yes. Maximum moment and deflection match the specified values within the displayed precision; actual results were 50.000 kip-ft and 0.608519 in.
+## 2026-11-24
+- Asked: Add File menu Save/Open for support type, span, section, deflection limit, and loads; remove saving designs from spec out of scope.
+- Changed: Added a File menu with Ctrl+S/Ctrl+O, JSON save/open dialogs, state restoration for the requested fields, and updated spec.md to state saving/opening is in scope. The current Out of scope section did not contain a saving designs item to remove.
+- Worked: Implementation completed; not runtime-verified.

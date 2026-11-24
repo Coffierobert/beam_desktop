@@ -1,7 +1,7 @@
 """Beam Designer: a local Tkinter beam analysis desktop application."""
-import math
+import json
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 BG, CARD, INK, MUTED, PURPLE, ORANGE = "#f4efff", "#fffefa", "#29243b", "#6c6680", "#6856b5", "#ff8757"
 
@@ -101,6 +101,14 @@ class BeamDesigner(tk.Tk):
         return box
 
     def _build(self):
+        menu = tk.Menu(self)
+        file_menu = tk.Menu(menu, tearoff=False)
+        file_menu.add_command(label="Save", command=self.save_design, accelerator="Ctrl+S")
+        file_menu.add_command(label="Open", command=self.open_design, accelerator="Ctrl+O")
+        menu.add_cascade(label="File", menu=file_menu)
+        self.configure(menu=menu)
+        self.bind_all("<Control-s>", lambda _event: self.save_design())
+        self.bind_all("<Control-o>", lambda _event: self.open_design())
         style = ttk.Style(self)
         style.theme_use("clam")
         style.configure("TFrame", background=BG)
@@ -182,6 +190,66 @@ class BeamDesigner(tk.Tk):
     def _remove_row(self, kind, items):
         rows = self.point_rows if kind == "point" else self.uniform_rows
         if items in rows: rows.remove(items)
+
+    def save_design(self):
+        path = filedialog.asksaveasfilename(
+            title="Save beam design", defaultextension=".json",
+            filetypes=(("Beam design", "*.json"), ("All files", "*.*")))
+        if not path:
+            return
+        try:
+            data = {
+                "support": self.vars["Support"].get(),
+                "span_ft": float(self.vars["Span"].get()),
+                "section": self.vars["Section"].get(),
+                "deflection_limit_in": float(self.vars["Deflection limit"].get()),
+                "point_loads": [[float(v.get()) for v in row] for row in self.point_rows],
+                "uniform_loads": [[float(v.get()) for v in row] for row in self.uniform_rows],
+            }
+            with open(path, "w", encoding="utf-8") as design_file:
+                json.dump(data, design_file, indent=2)
+            self.status.set(f"Saved design to {path}")
+        except (ValueError, OSError) as exc:
+            messagebox.showerror("Could not save design", str(exc))
+
+    def open_design(self):
+        path = filedialog.askopenfilename(
+            title="Open beam design",
+            filetypes=(("Beam design", "*.json"), ("All files", "*.*")))
+        if not path:
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as design_file:
+                data = json.load(design_file)
+            support = data["support"]
+            span = float(data["span_ft"])
+            section = data["section"]
+            limit = float(data["deflection_limit_in"])
+            if support not in ("Simply supported", "Cantilever") or span <= 0 or limit <= 0:
+                raise ValueError("The design contains an invalid support, span, or deflection limit.")
+            if section not in STEEL and section not in LUMBER:
+                raise ValueError(f"Unknown section: {section}")
+            point_loads = data.get("point_loads", [])
+            uniform_loads = data.get("uniform_loads", [])
+            if any(len(row) != 2 for row in point_loads) or any(len(row) != 3 for row in uniform_loads):
+                raise ValueError("The design contains a malformed load entry.")
+            self.vars["Support"].set(support)
+            self.vars["Span"].set(str(span))
+            self.vars["Section"].set(section)
+            self.vars["Deflection limit"].set(str(limit))
+            self.section_combo.configure(values=list(STEEL if section in STEEL else LUMBER))
+            for rows, area in ((self.point_rows, self.point_area), (self.uniform_rows, self.uniform_area)):
+                rows.clear()
+                for child in area.winfo_children():
+                    child.destroy()
+            for values in point_loads:
+                self.add_load("point", values)
+            for values in uniform_loads:
+                self.add_load("uniform", values)
+            self.run()
+            self.status.set(f"Opened design from {path}")
+        except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as exc:
+            messagebox.showerror("Could not open design", str(exc))
 
     def validation_example(self):
         self.vars["Support"].set("Simply supported"); self.vars["Span"].set("20")

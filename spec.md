@@ -12,6 +12,10 @@ to load the populated validation example. This specification describes the
 intended application; it does not prescribe implementation details beyond
 Python and Tkinter.
 
+Provide a **File** menu with **Save** and **Open** commands. Save the support
+type, span, selected section, deflection limit, and all point and uniform loads
+to a local design file; Open restores those values into the interface.
+
 ## Purpose
 
 Analyze a single beam under static vertical loads. Show support reactions,
@@ -97,6 +101,8 @@ Use the exact section properties from the selected catalog release in the
 application test and record them with the test case.
 
 ## Out of scope
+
+Saving and opening beam designs are in scope.
 
 Continuous beams, buckling and lateral restraint checks, shear-strength checks,
 load combinations, connection design, and code-compliant member design.
