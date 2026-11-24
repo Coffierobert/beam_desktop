@@ -34,3 +34,7 @@
 - Asked: Rerun the validation cases in spec.md and confirm they still pass.
 - Changed: Reran the only specified case using analyze(): 20 ft simply supported beam, 1 kip/ft full-span load, no self-weight, Sx=14 in^3, Ix=204 in^4, and E=29,000 ksi.
 - Worked: Yes. Maximum moment was 50.000 kip-ft and maximum deflection was 0.608519 in (0.609 in rounded), matching spec.md.
+## 2026-11-24
+- Asked: Write a short README.md describing the app, required packages, and start command; the message also ended with an unfinished “2.”.
+- Changed: Added README.md describing Beam Designer, its standard-library/Tkinter dependencies, and `python beam_designer.py`.
+- Worked: Completed the specified README item.
